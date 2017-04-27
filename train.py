@@ -1,19 +1,21 @@
-# Tudor Berariu, 2015
-import numpy as np                                  # Needed to work with arrays
+import numpy as np                              # Needed to work with arrays
 from argparse import ArgumentParser
 
-import matplotlib
-matplotlib.use('TkAgg')
-import pylab
+from prepare_data import load_data
 
-from data_loader import load_mnist
-from feed_forward import FeedForward
+from feed_forward import FeedForward # The neural network
 from transfer_functions import identity, logistic, hyperbolic_tangent
-from layer import Layer
+
+from layer import Layer # Fully connected
+from tanh import TanhLayer
+from softmax import SoftmaxLayer
+from linearize import LinearizeLayer, LinearizeLayerReverse
+
+
 from convolutional import ConvolutionalLayer
 from max_pooling import MaxPoolingLayer
 from relu import ReluLayer
-from linearize import LinearizeLayer, LinearizeLayerReverse
+
 
 def eval_nn(nn, imgs, labels, maximum = 0):
     # Compute the confusion matrix
@@ -25,14 +27,12 @@ def eval_nn(nn, imgs, labels, maximum = 0):
         t = labels[i]
         if y == t:
             correct_no += 1
-        confusion_matrix[y][t] += 1
+        confusion_matrix[int(y)][int(t)] += 1
 
     return float(correct_no) / float(how_many), confusion_matrix / float(how_many)
 
 def train_nn(nn, data, args):
-    pylab.ion()
     cnt = 0
-    print(data)
     for i in np.random.permutation(data["train_no"]):
 
         cnt += 1
@@ -40,7 +40,7 @@ def train_nn(nn, data, args):
         inputs = data["train_imgs"][i]
         label = data["train_labels"][i]
         targets = np.zeros((10, 1))
-        targets[label] = 1
+        targets[int(label)] = 1
         outputs = nn.forward(inputs)
         errors = outputs - targets
         nn.backward(inputs, errors)
@@ -53,26 +53,20 @@ def train_nn(nn, data, args):
             train_acc, train_cm = \
                 eval_nn(nn, data["train_imgs"], data["train_labels"], 5000)
             print("Train acc: %2.6f ; Test acc: %2.6f" % (train_acc, test_acc))
-            pylab.imshow(test_cm)
-            pylab.draw()
 
-            matplotlib.pyplot.pause(0.001)
 
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--learning_rate", type = float, default = 0.001,
                         help="Learning rate")
     parser.add_argument("--eval_every", type = int, default = 200,
-                        help="Learning rate")
+                        help="How often to evaluate")
     args = parser.parse_args()
 
-    mnist = load_mnist()
-    input_size = mnist["train_imgs"][0].size
+    cifar = load_data()
 
-    # TODO 5
-    nn = FeedForward([Layer(input_size, 300, logistic), Layer(300, 10, identity)])
-    # nn = FeedForward([LinearizeLayer(), Layer(300, )])
-    # nn = FeedForward([LinearizeLayerReverse(1, 28, 28), ConvolutionalLayer(1, 28, 28, 16, 5, 1), MaxPoolingLayer(2), ReluLayer(), ConvolutionalLayer(16, 12, 12, 16, 5, 1), MaxPoolingLayer(2), ReluLayer(), LinearizeLayer(16, 4, 4), Layer(256, 10, identity)])
-    # print(nn.to_string())
-    print(mnist)
-    # train_nn(nn, mnist, args)
+    # nn = FeedForward([LinearizeLayer(3, 32, 32), Layer(3 * 32 * 32, 300, logistic), TanhLayer(), Layer(300, 10, identity)])
+    nn = FeedForward([ConvolutionalLayer(3, 32, 32, 5, 4, 2), ReluLayer(), LinearizeLayer(5, 15, 15), Layer(5 * 15 * 15, 10, identity)])
+
+    print(nn.to_string())
+    train_nn(nn, cifar, args)

@@ -15,19 +15,27 @@ class MaxPoolingLayer(LayerInterface):
         (d, w, h) = inputs.shape
         s = self.stride
 
-        result = np.zeros((d, w // s, h // s))
+        self.outputs = inputs.reshape(d, w // s, s, h // s, s).max(axis=(2, 4))
+        return self.outputs
 
-        for i in range(d):
-            for j in range(w // s):
-                for k in range(h // s):
-                    result[i, j, k] = np.amax(inputs[i, j*s : (j+1)*s, k*s : (k+1)*s])
+        # N,h,w = x.shape
+        # inputs = inputs.reshape(d,w/2,2,h/2,2).swapaxes(2,3).reshape(d,w/2,h/2,4)
+        # return np.amax(inputs,axis=3)
 
-        self.outputs = result
-        return result
+        # result = np.zeros((d, w // s, h // s))
+
+        # for i in range(d):
+        #     for j in range(w // s):
+        #         for k in range(h // s):
+        #             result[i, j, k] = np.amax(inputs[i, j*s : (j+1)*s, k*s : (k+1)*s])
+
+        # self.outputs = result
+        # return result
 
     def backward(self, inputs, output_errors):
         (d, w, h) = inputs.shape
 
+        s = self.stride
         result = np.zeros(inputs.shape)
 
         for i in range(d):
@@ -35,8 +43,6 @@ class MaxPoolingLayer(LayerInterface):
                 for k in range(h):
                     if inputs[i, j, k] == output_errors[i, j // 2, k // 2]:
                         result[i, j, k] = inputs[i, j, k]
-                    else:
-                        result[i, j, k] = 0
 
         return result
 
