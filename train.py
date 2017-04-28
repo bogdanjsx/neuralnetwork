@@ -42,16 +42,19 @@ def train_nn(nn, data, args):
         targets = np.zeros((10, 1))
         targets[int(label)] = 1
         outputs = nn.forward(inputs)
+
         errors = outputs - targets
+
         nn.backward(inputs, errors)
         nn.update_parameters(args.learning_rate)
 
         # Evaluate the network
         if cnt % args.eval_every == 0:
+            nn.zero_gradients()
             test_acc, test_cm = \
                 eval_nn(nn, data["test_imgs"], data["test_labels"])
             train_acc, train_cm = \
-                eval_nn(nn, data["train_imgs"], data["train_labels"], 5000)
+                eval_nn(nn, data["train_imgs"], data["train_labels"], 1000)
             print("Train acc: %2.6f ; Test acc: %2.6f" % (train_acc, test_acc))
 
 
@@ -65,8 +68,10 @@ if __name__ == "__main__":
 
     cifar = load_data()
 
-    # nn = FeedForward([LinearizeLayer(3, 32, 32), Layer(3 * 32 * 32, 300, logistic), TanhLayer(), Layer(300, 10, identity)])
-    nn = FeedForward([ConvolutionalLayer(3, 32, 32, 5, 4, 2), ReluLayer(), LinearizeLayer(5, 15, 15), Layer(5 * 15 * 15, 10, identity)])
+    nn = FeedForward([LinearizeLayer(3, 32, 32), Layer(3 * 32 * 32, 300, logistic), TanhLayer(), Layer(300, 10, logistic), SoftmaxLayer()])
+    # nn = FeedForward([LinearizeLayer(3, 32, 32), Layer(3 * 32 * 32, 10, identity), SoftmaxLayer()])
+
+    # nn = FeedForward([ConvolutionalLayer(3, 32, 32, 5, 4, 2), ReluLayer(), LinearizeLayer(5, 15, 15), Layer(5 * 15 * 15, 10, identity)])
 
     print(nn.to_string())
     train_nn(nn, cifar, args)

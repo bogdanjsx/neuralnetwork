@@ -29,7 +29,7 @@ def preprocess(img):
 
 def load_data():
     data = {}
-    train_img = np.empty((TRAIN_NO, 3, 32, 32))
+    train_img = np.empty((TRAIN_NO, 3, 32, 32), dtype='float64')
     train_labels = np.empty(TRAIN_NO)
 
     for idx, f in enumerate(TRAIN_FILES):

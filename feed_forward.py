@@ -21,6 +21,10 @@ class FeedForward:
             crt_error = crt_layer.backward(prev_layer.outputs, crt_error)
         self.layers[0].backward(inputs, crt_error)
 
+    def zero_gradients(self):
+        for layer in self.layers:
+            layer.zero_gradients()
+
     def update_parameters(self, learning_rate):
         for layer in self.layers:
             layer.update_parameters(learning_rate)

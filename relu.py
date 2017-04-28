@@ -16,6 +16,5 @@ class ReluLayer(LayerInterface):
     def backward(self, inputs, output_errors):
         return output_errors * relu(inputs, True)
 
-
     def to_string(self):
         return "[Relu]"

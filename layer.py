@@ -3,6 +3,7 @@
 import numpy as np
 
 from layer_interface import LayerInterface
+from time import sleep
 
 class Layer(LayerInterface):
 
@@ -55,6 +56,10 @@ class Layer(LayerInterface):
 
         # Compute and return the gradients w.r.t the inputs of this layer
         return delta
+
+    def zero_gradients(self):
+        self.g_biases = np.zeros(self.g_biases.shape)
+        self.g_weights = np.zeros(self.g_weights.shape)
 
     def update_parameters(self, learning_rate):
         self.biases -= self.g_biases * learning_rate

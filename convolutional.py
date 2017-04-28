@@ -81,12 +81,8 @@ class ConvolutionalLayer(LayerInterface):
 
         s = self.stride
 
-        # TODO (4.b.i)
         # compute the gradients w.r.t. the bias terms (self.g_biases)
-        for n in range(do):
-            for i in range(wo):
-                for j in range(ho):
-                    self.g_biases[n] += output_errors[n][i][j]
+        self.g_biases += output_errors.sum(axis=(1,2)).reshape(do, 1)
 
         # TODO (4.b.ii)
         # compute the gradients w.r.t. the weights (self.g_weights)
@@ -113,6 +109,10 @@ class ConvolutionalLayer(LayerInterface):
                                     result[m][i][j] += self.weights[n][m][p][q] * output_errors[n][ii][jj]
 
         return result
+
+    def zero_gradients(self):
+        self.g_biases = np.zeros(self.g_biases.shape)
+        self.g_weights = np.zeros(self.g_weights.shape)
 
     def update_parameters(self, learning_rate):
         self.biases -= self.g_biases * learning_rate

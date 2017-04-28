@@ -15,7 +15,10 @@ def logistic(x, derivate = False):
     return 1 / (1 + np.e ** (-x)) if not derivate else x * (1 - x)
 
 def hyperbolic_tangent(x, derivate = False):
-    return (np.exp(2 * x) - 1) / (np.exp(2 * x) + 1) if not derivate else 1 - x ** 2
+    return np.tanh(x) if not derivate else 1 - x ** 2
+
+def hyperbolic_tangent2(x, derivate = False):
+    return (np.exp(2 * x) - 1) / (np.exp(2 * x) + 1) if not derivate else 1 - x ** 2  
 
 def mx(x):
     return max(0, x)
