@@ -1,10 +1,10 @@
 import numpy as np                              # Needed to work with arrays
 from argparse import ArgumentParser
 
-from prepare_data import load_data
+from prepare_data import load_cifar, load_julia
 
 from feed_forward import FeedForward # The neural network
-from transfer_functions import identity, logistic, hyperbolic_tangent
+from transfer_functions import identity, logistic, hyperbolic_tangent, relu
 
 from layer import Layer # Fully connected
 from tanh import TanhLayer
@@ -47,14 +47,14 @@ def train_nn(nn, data, args):
 
         nn.backward(inputs, errors)
         nn.update_parameters(args.learning_rate)
-
+        
         # Evaluate the network
         if cnt % args.eval_every == 0:
             nn.zero_gradients()
             test_acc, test_cm = \
                 eval_nn(nn, data["test_imgs"], data["test_labels"])
             train_acc, train_cm = \
-                eval_nn(nn, data["train_imgs"], data["train_labels"], 1000)
+                eval_nn(nn, data["train_imgs"], data["train_labels"], 5000)
             print("Train acc: %2.6f ; Test acc: %2.6f" % (train_acc, test_acc))
 
 
@@ -66,12 +66,22 @@ if __name__ == "__main__":
                         help="How often to evaluate")
     args = parser.parse_args()
 
-    cifar = load_data()
+    cifar = load_cifar()
 
-    nn = FeedForward([LinearizeLayer(3, 32, 32), Layer(3 * 32 * 32, 300, logistic), TanhLayer(), Layer(300, 10, logistic), SoftmaxLayer()])
-    # nn = FeedForward([LinearizeLayer(3, 32, 32), Layer(3 * 32 * 32, 10, identity), SoftmaxLayer()])
-
-    # nn = FeedForward([ConvolutionalLayer(3, 32, 32, 5, 4, 2), ReluLayer(), LinearizeLayer(5, 15, 15), Layer(5 * 15 * 15, 10, identity)])
+    # nn = FeedForward([LinearizeLayer(3, 32, 32), Layer(3 * 32 * 32, 300, identity), TanhLayer(), Layer(300, 10, identity), SoftmaxLayer()])
+    # nn = FeedForward([ConvolutionalLayer(3, 32, 32, 5, 5, 1), ReluLayer(), MaxPoolingLayer(2), ConvolutionalLayer(5, 14, 14, 10, 3, 1),
+    #  ReluLayer(), MaxPoolingLayer(2), LinearizeLayer(10, 6, 6), Layer(10 * 6 * 6, 10, identity)])
+    nn = FeedForward([
+        ConvolutionalLayer(3, 32, 32, 6, 5, 1),
+        MaxPoolingLayer(2),
+        ReluLayer(),
+        ConvolutionalLayer(6, 14, 14, 16, 5, 1),
+        MaxPoolingLayer(2),
+        ReluLayer(),
+        LinearizeLayer(16, 5, 5),
+        Layer(400, 300, relu),
+        Layer(300, 10, relu),
+        SoftmaxLayer()]) 
 
     print(nn.to_string())
     train_nn(nn, cifar, args)

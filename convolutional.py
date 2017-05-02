@@ -1,18 +1,10 @@
 import numpy as np
 
 from layer_interface import LayerInterface
+from utils import *
+from time import sleep
 
-def im2col_sliding_strided(A, BSZ, stepsize=1):
-    # Parameters
-    m,n = A.shape
-    s0, s1 = A.strides    
-    nrows = m-BSZ[0]+1
-    ncols = n-BSZ[1]+1
-    shp = BSZ[0],BSZ[1],nrows,ncols
-    strd = s0,s1,s0,s1
 
-    out_view = np.lib.stride_tricks.as_strided(A, shape=shp, strides=strd)
-    return out_view.reshape(BSZ[0]*BSZ[1],-1)[:,::stepsize]
 
 class ConvolutionalLayer(LayerInterface):
 
@@ -52,24 +44,27 @@ class ConvolutionalLayer(LayerInterface):
 
     def forward(self, inputs):
         assert(inputs.shape == (self.inputs_depth, self.inputs_height, self.inputs_width))
+        k = self.k
 
-        # print(im2col_sliding_strided(inputs[0], (self.k, self.k), self.stride))
+        # im2col indexes
+        X_col = im2col(inputs, (k, k)).T
 
-        # TODO (4.a)
-        # -> compute self.a and self.outputs
-        (d, w, h) = inputs.shape
-        (do, wo, ho) = self.outputs.shape
+        # reshaped weights
+        W_row = self.weights.reshape((self.outputs_depth, k * k * self.inputs_depth))
 
-        s = self.stride
+        # Actual im2col values
+        X_val = np.take(inputs, X_col)
 
-        for n in range(do):
-            for i in range(wo):
-                for j in range(ho):
-                    for m in range(d):
-                        for p in range(self.k):
-                            for q in range(self.k):
-                                self.outputs[n][i][j] += inputs[m][i * s + p][j * s + q] * self.weights[n][m][p][q]
-                    self.outputs[n][i][j] += self.biases[n]
+        # Dot product of weights and actual columns
+        res = np.dot(W_row, X_val) + self.biases
+        
+        self.outputs = res.reshape((self.outputs_depth, self.outputs_height, self.outputs_width))
+
+        self.cache = X_col.T, X_val.T 
+
+        # print("Conv fw")
+        # print(self.outputs)
+        # sleep(1)
 
         return self.outputs
 
@@ -79,36 +74,24 @@ class ConvolutionalLayer(LayerInterface):
         (d, w, h) = inputs.shape
         (do, wo, ho) = output_errors.shape
 
-        s = self.stride
+        # Restore cache
+        X_col, X_val = self.cache
 
         # compute the gradients w.r.t. the bias terms (self.g_biases)
         self.g_biases += output_errors.sum(axis=(1,2)).reshape(do, 1)
 
-        # TODO (4.b.ii)
         # compute the gradients w.r.t. the weights (self.g_weights)
-        for n in range(do):
-            for m in range(d):
-                for p in range(self.k):
-                    for q in range(self.k):
-                        for i in range(wo):
-                            for j in range(ho):
-                                self.g_weights[n][m][p][q] += inputs[m][i * self.stride + p][j * s + q] * output_errors[n][i][j]
+        dout_reshaped = output_errors.reshape(self.outputs_depth, -1)
+        W_grad = np.dot(dout_reshaped, X_val)
+        self.g_weights = W_grad.reshape(self.weights.shape)
 
-        # TODO (4.b.iii)
         # compute and return the gradients w.r.t the inputs of this layer
-        result = np.zeros((d, w, h))
-        for m in range(d):
-            for i in range(w):
-                for j in range(h):
-                    for n in range(do):
-                        for p in range(self.k):
-                            for q in range(self.k):
-                                ii = int((i - p) / self.stride)
-                                jj = int((j - q) / self.stride)
-                                if ii < wo and jj < ho and ii >= 0 and jj >= 0:
-                                    result[m][i][j] += self.weights[n][m][p][q] * output_errors[n][ii][jj]
+        W_reshape = self.weights.reshape(self.outputs_depth, -1)
 
-        return result
+        dx_col = np.dot(W_reshape.T, dout_reshaped)
+        dx = col2im(X_col, dx_col.T, inputs.shape)
+
+        return dx
 
     def zero_gradients(self):
         self.g_biases = np.zeros(self.g_biases.shape)
@@ -120,7 +103,7 @@ class ConvolutionalLayer(LayerInterface):
 
 
     def to_string(self):
-        return "[C ((%s, %s, %s) -> (%s, %s ) -> (%s, %s, %s)]" % (self.inputs_depth, self.inputs_height, self.inputs_width, self.k, self.stride, self.outputs_depth, self.outputs_height, self.outputs_width)
+        return "[C ((%s, %s, %s) -> (%s, %s) -> (%s, %s, %s)]" % (self.inputs_depth, self.inputs_height, self.inputs_width, self.k, self.stride, self.outputs_depth, self.outputs_height, self.outputs_width)
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
@@ -141,7 +124,7 @@ def test_convolutional_layer():
 
     x = np.array([[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
                   [[13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24]]])
-
+            
     print("Testing forward computation...")
     output = l.forward(x)
     target = np.array([[[34.55043437, 38.95942899, 43.36842361],
@@ -159,9 +142,6 @@ def test_convolutional_layer():
     print("Testing backward computation...")
 
     g = l.backward(x, output_err)
-#    print(l.g_biases)
-#    print(l.g_weights)
-#    print(g)
 
     print("    i. testing gradients w.r.t. the bias terms...")
     gbias_target =  np.array([[ 2.4595299 ],
@@ -191,7 +171,6 @@ def test_convolutional_layer():
   [[ 19.4848499 , 20.65989231],
    [ 24.18501955, 25.36006196]]]]
     )
-
     assert (l.g_weights.shape == gweights_target.shape), "Wrong size"
     assert close_enough(l.g_weights, gweights_target), "Wrong values"
     print("     OK")

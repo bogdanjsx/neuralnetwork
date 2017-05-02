@@ -1,5 +1,3 @@
-# Tudor Berariu, 2016
-
 import numpy as np
 from layer_interface import LayerInterface
 

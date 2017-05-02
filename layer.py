@@ -1,5 +1,3 @@
-# Tudor Berariu, 2016
-
 import numpy as np
 
 from layer_interface import LayerInterface
@@ -53,6 +51,11 @@ class Layer(LayerInterface):
 
         # Compute the gradients w.r.t. the weights (self.g_weights)
         self.g_weights = np.dot(inputs, output_errors.T).T
+
+        
+        # print("FC Grad")
+        # print(self.g_weights)
+        # sleep(1)
 
         # Compute and return the gradients w.r.t the inputs of this layer
         return delta
