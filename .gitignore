@@ -1,3 +1,4 @@
-Img/**
-cifar-10/*
+julia/**
+cifar/**
+.vscode/**
 *.pyc
