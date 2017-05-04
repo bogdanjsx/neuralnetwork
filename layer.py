@@ -1,11 +1,9 @@
 import numpy as np
-
 from layer_interface import LayerInterface
-from time import sleep
 
 class Layer(LayerInterface):
 
-    def __init__(self, inputs_no, outputs_no, transfer_function):
+    def __init__(self, inputs_no, outputs_no, transfer_function, use_momentum = False):
         # Number of inputs, number of outputs, and the transfer function
         self.inputs_no = inputs_no
         self.outputs_no = outputs_no
@@ -31,6 +29,11 @@ class Layer(LayerInterface):
         self.g_weights = np.zeros((self.outputs_no, self.inputs_no))
         self.g_biases = np.zeros((self.outputs_no, 1))
 
+        # Momentum
+        self.use_momentum = use_momentum
+        self.v = np.zeros(self.weights.shape)
+        self.mu = 0.9
+
 
     def forward(self, inputs):
         assert(inputs.shape == (self.inputs_no, 1))
@@ -52,11 +55,6 @@ class Layer(LayerInterface):
         # Compute the gradients w.r.t. the weights (self.g_weights)
         self.g_weights = np.dot(inputs, output_errors.T).T
 
-        
-        # print("FC Grad")
-        # print(self.g_weights)
-        # sleep(1)
-
         # Compute and return the gradients w.r.t the inputs of this layer
         return delta
 
@@ -66,7 +64,12 @@ class Layer(LayerInterface):
 
     def update_parameters(self, learning_rate):
         self.biases -= self.g_biases * learning_rate
-        self.weights -= self.g_weights * learning_rate
+
+        if self.use_momentum:
+            self.v = self.mu * self.v - learning_rate * self.g_weights # integrate velocity
+            self.weights += self.v
+        else:
+            self.weights -= self.g_weights * learning_rate
 
     def to_string(self):
         return "[FC (%s -> %s)]" % (self.inputs_no, self.outputs_no)

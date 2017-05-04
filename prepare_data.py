@@ -123,6 +123,3 @@ def load_julia():
     data["test_no"] = TEST_IMG_NO
 
     return data
-
-if __name__ == "__main__":
-    print(load_julia()['train_imgs'])

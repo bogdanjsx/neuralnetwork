@@ -19,4 +19,3 @@ class LayerInterface:
 
     def to_string(self):
         pass
-

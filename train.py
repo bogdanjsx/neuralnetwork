@@ -69,8 +69,7 @@ if __name__ == "__main__":
     cifar = load_cifar()
 
     # nn = FeedForward([LinearizeLayer(3, 32, 32), Layer(3 * 32 * 32, 300, identity), TanhLayer(), Layer(300, 10, identity), SoftmaxLayer()])
-    # nn = FeedForward([ConvolutionalLayer(3, 32, 32, 5, 5, 1), ReluLayer(), MaxPoolingLayer(2), ConvolutionalLayer(5, 14, 14, 10, 3, 1),
-    #  ReluLayer(), MaxPoolingLayer(2), LinearizeLayer(10, 6, 6), Layer(10 * 6 * 6, 10, identity)])
+  
     nn = FeedForward([
         ConvolutionalLayer(3, 32, 32, 6, 5, 1),
         MaxPoolingLayer(2),
@@ -81,7 +80,7 @@ if __name__ == "__main__":
         LinearizeLayer(16, 5, 5),
         Layer(400, 300, relu),
         Layer(300, 10, relu),
-        SoftmaxLayer()]) 
+        SoftmaxLayer()])
 
     print(nn.to_string())
     train_nn(nn, cifar, args)

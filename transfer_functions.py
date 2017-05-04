@@ -1,8 +1,6 @@
 import numpy as np
 np.set_printoptions(threshold=np.nan)
 
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
 # -- Transfer functions
 
 def identity(x, derivate = False):
@@ -20,7 +18,3 @@ def relu(x, derivate = False):
 def softmax(x):
     ex = np.exp(x - np.max(x))
     return ex / ex.sum()
-
-
-
-

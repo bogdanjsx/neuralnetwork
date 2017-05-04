@@ -1,6 +1,5 @@
 import numpy as np
 from transfer_functions import softmax
-from time import sleep
 
 from layer_interface import LayerInterface
 
